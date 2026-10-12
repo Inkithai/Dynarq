@@ -3,6 +3,26 @@
 One Node.js process serves the page and records the owner's decisions. There is no
 database and no build step that needs a secret.
 
+## What deploys where
+
+```
+browser ──HTTP──▶ Node.js service (Render) ──reads on every request──▶ data/invoices.json
+                     │                                                     data/sent.json
+                     ├── serves the HTML page   (src/page.ts, server rendered)
+                     ├── POST /decisions        (src/server.ts, in-memory DecisionStore)
+                     └── GET  /healthz          (for the platform health check)
+```
+
+| Layer      | What it is here                                                                 | Deploys as |
+| ---------- | ------------------------------------------------------------------------------- | ---------- |
+| Frontend   | Server-rendered HTML in `src/page.ts`. No bundler, no separate static build.     | The same service |
+| Backend    | `src/server.ts` + the rules engine (`src/plan.ts`), started by `src/app.ts`.     | The same service |
+| Data       | Two JSON files in `data/`, read on every request. No database, no ORM.           | Part of the deployed image |
+| Decisions  | `src/decisions.ts`, a `Map` in memory. Lost on restart, which is all the task asks. | Nowhere |
+
+So this is **one** deployment, not three. `npm run build` only compiles TypeScript to
+`typescript/dist`; it does not build a frontend bundle.
+
 ## Prerequisites
 
 - Node.js 20 or newer (`node --version`).
