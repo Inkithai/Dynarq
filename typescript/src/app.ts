@@ -1,51 +1,50 @@
-// The owner's page (part 2). Uses only node:http, no framework needed.
-//
-// Run from inside typescript/:  npm run app
+// The owner's page (part 2). Start with: npm run app
 //
 // Environment variables:
 //   PORT      port to listen on, default 8000
 //   DATA_DIR  folder with invoices.json and sent.json, default ../data
 //   TODAY     date as YYYY-MM-DD, default the real date
 
-import { createServer } from "node:http";
+import type { Server } from "node:http";
+import { pathToFileURL } from "node:url";
+import { todayIsoDate } from "./dates.js";
+import { messageOf } from "./errors.js";
+import { createReminderServer } from "./server.js";
 
-const PORT = Number(process.env.PORT || "8000");
-const DATA_DIR = process.env.DATA_DIR || "../data";
-const TODAY = process.env.TODAY || localToday();
+const DEFAULT_PORT = 8000;
+const DEFAULT_DATA_DIR = "../data";
 
-function localToday(): string {
-  const d = new Date();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${mm}-${dd}`;
+export function startApp(environment: NodeJS.ProcessEnv = process.env): Server {
+  const port = readPort(environment.PORT);
+  const dataDir = environment.DATA_DIR ?? DEFAULT_DATA_DIR;
+  const today = environment.TODAY ?? todayIsoDate();
+
+  const server = createReminderServer({ dataDir, today });
+  server.on("error", (error: NodeJS.ErrnoException) => {
+    const reason = error.code === "EADDRINUSE" ? `port ${port} is already in use` : messageOf(error);
+    console.error(`reminders: could not start on port ${port}: ${reason}`);
+    process.exitCode = 1;
+  });
+  server.listen(port, () => {
+    const address = server.address();
+    const listeningOn = typeof address === "object" && address !== null ? address.port : port;
+    console.log(`Payment reminders page: http://localhost:${listeningOn}/ (data: ${dataDir}, today: ${today})`);
+  });
+  return server;
 }
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-const server = createServer((req, res) => {
-  if (req.method !== "GET" || req.url !== "/") {
-    res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
-    res.end("Not found");
-    return;
+function readPort(raw: string | undefined): number {
+  if (raw === undefined || raw === "") {
+    return DEFAULT_PORT;
   }
-  // TODO: use buildPlan from plan.ts and show today's plan (README part 2).
-  const body =
-    '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
-    '<meta name="viewport" content="width=device-width, initial-scale=1">' +
-    "<title>Payment reminders</title></head><body>" +
-    "<h1>Payment reminders</h1>" +
-    `<p>Placeholder page. Today is ${escapeHtml(TODAY)}. Data folder: ${escapeHtml(DATA_DIR)}.</p>` +
-    "</body></html>";
-  res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-  res.end(body);
-});
+  const port = Number(raw);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(`PORT must be a whole number between 1 and 65535, but it is "${raw}"`);
+  }
+  return port;
+}
 
-server.listen(PORT, () => {
-  console.log(`Serving on http://localhost:${PORT}/`);
-});
+// Run startApp() only when this file is started directly, not when a test imports it.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  startApp();
+}
