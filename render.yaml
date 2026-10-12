@@ -1,0 +1,22 @@
+# Deployment for Render (https://render.com), a Node.js web service.
+#
+#   render blueprint sync   # or use New > Blueprint in the dashboard and point it at this repo
+#
+# The service root is the repository root, so DATA_DIR points at the data folder
+# there. PORT is provided by Render and must not be set here.
+
+services:
+  - type: web
+    name: dynarq-payment-reminders
+    runtime: node
+    plan: free
+    rootDir: typescript
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: DATA_DIR
+        value: ../data
+      # TODAY is left out on purpose: the real date is used.
