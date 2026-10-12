@@ -5,7 +5,7 @@
 // customer. Standard library only, no framework.
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
-import { DecisionStore, DuplicateDecisionError, isDecision, type Decision } from "./decisions.js";
+import { DecisionStore, DuplicateDecisionError, isDecision } from "./decisions.js";
 import { messageOf } from "./errors.js";
 import { renderReminderPage } from "./page.js";
 import { loadReminderPlan, type ReminderPlanData } from "./planData.js";

@@ -59,21 +59,21 @@ export function buildPlan(invoices: unknown[], sent: unknown[], today: string): 
   const listed = new Set<string>();
 
   for (const entry of entries) {
-    // A repeated id is listed once, and none of the invoices with that id are
-    // checked any further.
+    // Every id is looked at once, so a repeated id is reported once and none of
+    // the invoices carrying it are checked any further.
     if (listed.has(entry.id)) {
       continue;
     }
+    listed.add(entry.id);
+
     if (duplicateIds.has(entry.id)) {
       skipped.push({ invoice_id: entry.id, reason: "duplicate_id" });
-      listed.add(entry.id);
       continue;
     }
 
     const result = readInvoice(entry, todayDate);
     if ("reason" in result) {
       skipped.push({ invoice_id: entry.id, reason: result.reason });
-      listed.add(entry.id);
       continue;
     }
 
