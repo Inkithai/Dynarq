@@ -7,9 +7,11 @@
     "node": ">=20"
   },
   "scripts": {
-    "plan": "tsx src/plan.ts",
+    "plan": "tsx src/cli.ts",
     "app": "tsx src/app.ts",
-    "test": "tsx --test test/plan.test.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/app.js",
+    "test": "tsx --test test/plan.test.ts test/rules.test.ts test/messages.test.ts test/page.test.ts test/server.test.ts test/cli.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
